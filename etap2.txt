@@ -1,5 +1,18 @@
+1) kompiluj z -g (już pewnie to robisz)
+2) valgrind --tool=callgrind ./mshell < in > out
+3) kcachegrind
+w razie czego doinstaluj, jest to w repo
+4) ciesz oczy kolorowymi prostokącikami xdd
+
+./clean.sh
+./prepare.sh
+./run_suite.sh ../mshell 1
+./run_suite.sh ../mshell 3
+./run_suite.sh ../mshell 2
+./run_suite.sh ../mshell 1
+
 ok, więc jak już mówiłam read(MAX_LINE) wczytuje ci maksymalnie MAX_LINE i może ci poszatkować
-cały pilk na kawałeczki dowolnie, więc co robisz:
+cały pilk na kawałeczki dowolnie, więc co robiszv
 w pętli:
 - trzymasz sobie początek danej komendy
 - wczytujesz ile się da

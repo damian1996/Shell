@@ -1,0 +1,3 @@
+# builtin kill test 2
+lkill -2 32125 
+lkill -2 32126 
