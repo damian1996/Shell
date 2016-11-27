@@ -139,6 +139,7 @@ lls(char *argv[])
 	}
 	if(closedir(dir) < 0)
 	  return BUILTIN_ERROR;
+	fflush(stdout);
 	return 0;
 }
 

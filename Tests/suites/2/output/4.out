@@ -1,15 +1,15 @@
-chdir to servers
-chdir to pm
-done
 servers
 bin
+chdir to servers
 pm
 init
 Makefile
 rs
 fs
+chdir to pm
 pm
 init
 Makefile
 rs
 fs
+done

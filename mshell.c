@@ -28,7 +28,7 @@ main(int argc, char *argv[])
 {
     line * ln;
     command *c;
-    int n, k, status, i, wskMain, j, m, wskBuf;
+    int n, k, status, i, wskMain, j, m, wskBuf, testLen;
     char buf[MAX_LINE_LENGTH+5];
     struct stat p;
     status = fstat(0, &p);
@@ -40,12 +40,37 @@ main(int argc, char *argv[])
     sigemptyset(&sa.sa_mask);
     sigaction(SIGCHLD, &sa, NULL);
 
+    testLen = 0;
     while(1)
     {
         if(S_ISCHR(p.st_mode))
             write(1, PROMPT_STR, 2);
         n = read(0, buf+wskMain, MAX_LINE_LENGTH-wskMain);
         buf[n+wskMain] = 0;
+        int pom;
+        if(testLen == 1)
+        {
+          pom = wskBuf;
+          while(pom<n+wskMain)
+          {
+            if(buf[pom]=='\n')
+            {
+              testLen=0;
+              break;
+            }
+            pom++;
+          }
+          if(testLen==0)
+          {
+            wskBuf = pom;
+          }
+          else
+          {
+            wskBuf = 0;
+            wskMain = 0;
+            continue;
+          }
+        }
         if(n==0)
         {
             for(i=wskBuf; i<n+wskMain; i++)
@@ -84,6 +109,7 @@ main(int argc, char *argv[])
             }
             else if(wskBuf==0 && i==MAX_LINE_LENGTH)
             {
+                testLen = 1;
                 wskMain = 0;
                 wskBuf = 0;
                 fprintf(stderr, "%s\n", SYNTAX_ERROR_STR);
@@ -183,6 +209,15 @@ void checkPipelines(char buf[], int wskMain)
                 pipe(fd2);
             }
         }
+        if(fd[0] != -1)
+            close(fd[0]);
+        if(fd2[1] != -1)
+            close(fd2[1]);
+        if(fd[1] != -1)
+            close(fd[1]);
+        if(fd2[0] != -1)
+            close(fd2[0]);
+
         sigemptyset (&mask);
         while (counter>0)
             sigsuspend (&mask);
@@ -214,6 +249,7 @@ void controlDescriptors(command *c, int* fd, int* fd2)
         close(fd2[1]);
         fd2[1] = -1;
     }
+    //fprintf(stdout, "%s %d %d %d %d \n", c->argv[0], fd2[0], fd2[1], fd[0], fd[1]);
     execCommand(c);
 }
 int builtin_command(command *c)
@@ -263,7 +299,7 @@ void redirections(command *c)
         if(IS_RIN(c->redirs[iter]->flags))
         {
             close(0);
-            if(fdRedir = open(c->redirs[iter]->filename, O_RDONLY|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)<0)
+            if(fdRedir = open(c->redirs[iter]->filename, O_RDONLY)<0)
             {
                 err = errno;
                 checkErrnoRedirs(err, c, iter);
@@ -297,7 +333,7 @@ void redirections(command *c)
                 exit(EXEC_FAILURE);
             }
         }
-        
+
         iter++;
     }
 }
