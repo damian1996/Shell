@@ -1,7 +1,17 @@
+WIFSIGNALED(status)
+int endBackground[1024];
+int *statusy[1024];
+returns true if the child process was terminated by a signal.
+WTERMSIG(status)
+returns the number of the signal that caused the child process to terminate.
+ macro should only be employed if WIFSIGNALED returned true.
+"Background process (pid) terminated. (exited with status (status))\n"
+"Background process (pid) terminated. (killed by signal (signo))\n"
+
 Jeśli linia jest w backgroundzie, odpalam proces i o nim zapominam,
 a w foregroundzie inkrem. counter i dodaje do listy procesow
 LINBACKGROUND
-listy procesow w foreground., backgrround ktore end oraz lista ich statusow
+listy procesow w foreground., background ktore end oraz lista ich statusow
 WIFSIGNALED - makro
 
 setsid() - nie zabijac procesow w tle, tylko foreground
@@ -38,7 +48,7 @@ Etap5. - wykonywanie procesów w tle i obsługa sygnałów.
 
 	4. CTRL-C wysyła sygnał SIGINT do wszystkich procesów z grupy procesów
 	foreground'u. Należy zadbać o to żeby sygnał ten nie docierał do
-	procesów z tła. Przy tym procesy uruchomione w tle powinny mieć
+	 z tła. Przy tym procesy uruchomione w tle powinny mieć
 	zarejestrowaną domyślną obsługę tego sygnału.
 
 Syscall checklist: sigaction, sigprocmask, sigsuspend, setsid

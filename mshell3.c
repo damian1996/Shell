@@ -1,3 +1,260 @@
+void checkPipelines(char buf[], int wskMain)
+{
+    int frk;
+    int iterPipe=0;
+    int fd[2] = {-1, -1}, fd2[2] = {-1, -1};
+    line * ln;
+    ln = parseline(buf+wskMain);
+    while((ln->pipelines[iterPipe])!=NULL)
+    {
+        counter = 0;
+        sigset_t mask;
+        sigemptyset (&mask);
+        sigaddset (&mask, SIGCHLD);
+        sigprocmask (SIG_BLOCK, &mask, NULL);
+
+        if(ln->pipelines[iterPipe][0]==NULL)
+        {
+            iterPipe++;
+            continue;
+        }
+        if(ln->pipelines[iterPipe][1]==NULL)
+        {
+            int builtin = builtin_command(ln->pipelines[iterPipe][0]);
+            if(!builtin)
+            {
+                frk = fork();
+                if(!frk)
+                {
+                    execCommand(ln->pipelines[iterPipe][0]);
+                    //exit(1);
+                }
+                else
+                    counter++;
+
+                sigemptyset (&mask);
+                while (counter>0)
+                {
+                    sigsuspend (&mask);
+                }
+            }
+            ++iterPipe;
+            continue;
+        }
+        if(pipe(fd2)<0)
+        {
+            exit(EXEC_FAILURE);
+        }
+        int iPipe=0;
+        command* c;
+        for(c = ln->pipelines[iterPipe][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[iterPipe][iPipe])
+        {
+            frk = fork();
+            if(!frk)
+            {
+                controlDescriptors(c, fd, fd2);
+                //exit(1);
+            }
+            else
+                counter++;
+
+            if(fd[0] != -1)
+                close(fd[0]);
+            if(fd2[1] != -1)
+                close(fd2[1]);
+            fd[0] = fd2[1] = -1;
+            if(ln->pipelines[iterPipe][iPipe+2]==NULL)
+            {
+                fd[0] = fd2[0];
+                fd[1] = fd2[1];
+                if(fd2[1] != -1)
+                    close(fd2[1]);
+                fd2[0] = fd2[1] = -1;
+                fd[1] = -1;
+            }
+            else
+            {
+                fd[0] = fd2[0];
+                fd[1] = fd2[1];
+                pipe(fd2);
+            }
+        }
+        if(fd[0] != -1)
+            close(fd[0]);
+        if(fd2[1] != -1)
+            close(fd2[1]);
+        if(fd[1] != -1)
+            close(fd[1]);
+        if(fd2[0] != -1)
+            close(fd2[0]);
+
+        sigemptyset (&mask);
+        while (counter>0)
+            sigsuspend (&mask);
+        //sigprocmask (SIG_UNBLOCK, &mask, NULL);
+        iterPipe++;
+    }
+}
+
+
+void checkPipelines(char buf[], int wskMain)
+{
+    int frk;
+    int iterPipe=0;
+    int fd[2] = {-1, -1}, fd2[2] = {-1, -1};
+    line * ln;
+    ln = parseline(buf+wskMain);
+    if(ln.flags==LINBACKGROUND)
+    {
+        if(ln->pipelines[0][0]==NULL)
+        {
+            iterPipe++;
+            continue;
+        }
+        if(pipe(fd2)<0)
+        {
+            exit(EXEC_FAILURE);
+        }
+        int iPipe=0;
+        command* c;
+        for(c = ln->pipelines[0][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[0][iPipe])
+        {
+            frk = fork();
+            if(!frk)
+            {
+                controlDescriptors(c, fd, fd2);
+                //exit(1);
+            }
+
+            if(fd[0] != -1)
+                close(fd[0]);
+            if(fd2[1] != -1)
+                close(fd2[1]);
+            fd[0] = fd2[1] = -1;
+            if(ln->pipelines[iterPipe][iPipe+2]==NULL)
+            {
+                fd[0] = fd2[0];
+                fd[1] = fd2[1];
+                if(fd2[1] != -1)
+                    close(fd2[1]);
+                fd2[0] = fd2[1] = -1;
+                fd[1] = -1;
+            }
+            else
+            {
+                fd[0] = fd2[0];
+                fd[1] = fd2[1];
+                pipe(fd2);
+            }
+        }
+        if(fd[0] != -1)
+            close(fd[0]);
+        if(fd2[1] != -1)
+            close(fd2[1]);
+        if(fd[1] != -1)
+            close(fd[1]);
+        if(fd2[0] != -1)
+            close(fd2[0]);
+    }
+    else
+    {
+        while((ln->pipelines[iterPipe])!=NULL)
+        {
+            counter = 0;
+            sigset_t mask;
+            sigemptyset (&mask);
+            sigaddset (&mask, SIGCHLD);
+            sigprocmask (SIG_BLOCK, &mask, NULL);
+
+            if(ln->pipelines[iterPipe][0]==NULL)
+            {
+                iterPipe++;
+                continue;
+            }
+            if(ln->pipelines[iterPipe][1]==NULL)
+            {
+                int builtin = builtin_command(ln->pipelines[iterPipe][0]);
+                if(!builtin)
+                {
+                    frk = fork();
+                    if(!frk)
+                    {
+                        execCommand(ln->pipelines[iterPipe][0]);
+                        //exit(1);
+                    }
+                    else
+                    {
+                        foreground[counter] = frk;
+                        counter++;
+                    }
+
+                    sigemptyset (&mask);
+                    while (counter>0)
+                    {
+                        sigsuspend (&mask);
+                    }
+                }
+                ++iterPipe;
+                continue;
+            }
+            if(pipe(fd2)<0)
+            {
+                exit(EXEC_FAILURE);
+            }
+            int iPipe=0;
+            command* c;
+            for(c = ln->pipelines[iterPipe][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[iterPipe][iPipe])
+            {
+                frk = fork();
+                if(!frk)
+                {
+                    controlDescriptors(c, fd, fd2);
+                }
+                else
+                {
+                    foreground[counter] = frk;
+                    counter++;
+                }
+                if(fd[0] != -1)
+                    close(fd[0]);
+                if(fd2[1] != -1)
+                    close(fd2[1]);
+                fd[0] = fd2[1] = -1;
+                if(ln->pipelines[iterPipe][iPipe+2]==NULL)
+                {
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    if(fd2[1] != -1)
+                        close(fd2[1]);
+                    fd2[0] = fd2[1] = -1;
+                    fd[1] = -1;
+                }
+                else
+                {
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    pipe(fd2);
+                }
+            }
+            if(fd[0] != -1)
+                close(fd[0]);
+            if(fd2[1] != -1)
+                close(fd2[1]);
+            if(fd[1] != -1)
+                close(fd[1]);
+            if(fd2[0] != -1)
+                close(fd2[0]);
+
+            sigemptyset (&mask);
+            while (counter>0)
+                sigsuspend (&mask);
+            //sigprocmask (SIG_UNBLOCK, &mask, NULL);
+            iterPipe++;
+        }
+    }
+}
+
+
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>

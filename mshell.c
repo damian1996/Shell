@@ -20,7 +20,10 @@ void checkErrnoCommand(int err, command *c);
 void redirections(command *c);
 void execCommand(command *c);
 int builtin_command(command *c);
-volatile int counter;
+volatile int counter, countBack;
+volatile int foreground[1024];
+volatile int endBackground[1024];
+volatile int statusy[1024];
 void handler(int sigNb);
 
 int
@@ -30,8 +33,9 @@ main(int argc, char *argv[])
     command *c;
     int n, k, status, i, wskMain, j, m, wskBuf, testLen;
     char buf[MAX_LINE_LENGTH+5];
-    int foreground[2048]; // procesy w foregroundzie
     struct stat p;
+    counter=0;
+    countBack=0;
     status = fstat(0, &p);
     wskMain = 0;
     wskBuf = 0;
@@ -45,32 +49,47 @@ main(int argc, char *argv[])
     while(1)
     {
         if(S_ISCHR(p.st_mode))
+        {
+            int iBack, lenBack = countBack;
+            for(iBack=0; iBack<lenBack; iBack++)
+            {
+                if(WIFSIGNALED(statusy[iBack]))
+                {
+                    fprintf(stdout, "Background process %d terminated. (killed by signal %d)\n", endBackground[iBack], WTERMSIG(statusy[iBack]));
+                }
+                else
+                {
+                    fprintf(stdout, "Background process %d terminated. (exited with status %d)\n", endBackground[iBack], statusy[iBack]);
+                }
+                countBack--;
+            }
             write(1, PROMPT_STR, 2);
+        }
         n = read(0, buf+wskMain, MAX_LINE_LENGTH-wskMain);
         buf[n+wskMain] = 0;
         int pom;
         if(testLen == 1)
         {
-          pom = wskBuf;
-          while(pom<n+wskMain)
-          {
-            if(buf[pom]=='\n')
+            pom = wskBuf;
+            while(pom<n+wskMain)
             {
-              testLen=0;
-              break;
+                if(buf[pom]=='\n')
+                {
+                    testLen=0;
+                    break;
+                }
+                pom++;
             }
-            pom++;
-          }
-          if(testLen==0)
-          {
-            wskBuf = pom;
-          }
-          else
-          {
-            wskBuf = 0;
-            wskMain = 0;
-            continue;
-          }
+            if(testLen==0)
+            {
+                wskBuf = pom;
+            }
+            else
+            {
+                wskBuf = 0;
+                wskMain = 0;
+                continue;
+            }
         }
         if(n==0)
         {
@@ -124,8 +143,33 @@ void handler(int sigNb)
     pid_t child;
     do
     {
-        child = waitpid(-1, NULL, WNOHANG);
-        if (child > 0) counter--;
+        int stat;
+        child = waitpid(-1, &stat, WNOHANG);
+        if (child > 0)
+        {
+            int z, back = 1;
+            for(z=counter-1; z>=0; z--)
+            {
+                if(child==foreground[z])
+                {
+                    back = 0;
+                    int tmp = foreground[counter-1];
+                    foreground[counter-1] = child;
+                    foreground[z] = tmp;
+                    counter--;
+                    break;
+                }
+            }
+            if(back && counter>0)
+            {
+                if(countBack<1024)
+                {
+                    endBackground[countBack] = child;
+                    statusy[countBack] = stat;
+                    countBack++;
+                }
+            }
+        }
     }
     while(child > 0);
 }
@@ -136,104 +180,158 @@ void checkPipelines(char buf[], int wskMain)
     int fd[2] = {-1, -1}, fd2[2] = {-1, -1};
     line * ln;
     ln = parseline(buf+wskMain);
-    /*if(ln.flags==LINBACKGROUND)
+    if(ln->flags & LINBACKGROUND)
     {
-
-    }
-    else
-    {
-
-    }*/
-    while((ln->pipelines[iterPipe])!=NULL)
-    {
-        counter = 0;
-        sigset_t mask;
-        sigemptyset (&mask);
-        sigaddset (&mask, SIGCHLD);
-        sigprocmask (SIG_BLOCK, &mask, NULL);
-
-        if(ln->pipelines[iterPipe][0]==NULL)
+        if(ln->pipelines[0][0]==NULL)
         {
             iterPipe++;
-            continue;
         }
-        if(ln->pipelines[iterPipe][1]==NULL)
+        else
         {
-            int builtin = builtin_command(ln->pipelines[iterPipe][0]);
-            if(!builtin)
+            if(pipe(fd2)<0)
+            {
+                exit(EXEC_FAILURE);
+            }
+            int iPipe=0;
+            command* c;
+            for(c = ln->pipelines[0][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[0][iPipe])
             {
                 frk = fork();
                 if(!frk)
                 {
-                    execCommand(ln->pipelines[iterPipe][0]);
+                    controlDescriptors(c, fd, fd2);
                     //exit(1);
                 }
-                else
-                    counter++;
 
-                sigemptyset (&mask);
-                while (counter>0)
+                if(fd[0] != -1)
+                    close(fd[0]);
+                if(fd2[1] != -1)
+                    close(fd2[1]);
+                fd[0] = fd2[1] = -1;
+                if(ln->pipelines[iterPipe][iPipe+2]==NULL)
                 {
-                    sigsuspend (&mask);
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    if(fd2[1] != -1)
+                        close(fd2[1]);
+                    fd2[0] = fd2[1] = -1;
+                    fd[1] = -1;
+                }
+                else
+                {
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    pipe(fd2);
                 }
             }
-            ++iterPipe;
-            continue;
-        }
-        if(pipe(fd2)<0)
-        {
-            exit(EXEC_FAILURE);
-        }
-        int iPipe=0;
-        command* c;
-        for(c = ln->pipelines[iterPipe][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[iterPipe][iPipe])
-        {
-            frk = fork();
-            if(!frk)
-            {
-                controlDescriptors(c, fd, fd2);
-                //exit(1);
-            }
-            else
-                counter++;
-
             if(fd[0] != -1)
                 close(fd[0]);
             if(fd2[1] != -1)
                 close(fd2[1]);
-            fd[0] = fd2[1] = -1;
-            if(ln->pipelines[iterPipe][iPipe+2]==NULL)
+            if(fd[1] != -1)
+                close(fd[1]);
+            if(fd2[0] != -1)
+                close(fd2[0]);
+        }
+    }
+    else
+    {
+        while((ln->pipelines[iterPipe])!=NULL)
+        {
+            counter = 0;
+            sigset_t mask;
+            sigemptyset (&mask);
+            sigaddset (&mask, SIGCHLD);
+            sigprocmask (SIG_BLOCK, &mask, NULL);
+
+            if(ln->pipelines[iterPipe][0]==NULL)
             {
-                fd[0] = fd2[0];
-                fd[1] = fd2[1];
+                iterPipe++;
+                continue;
+            }
+            if(ln->pipelines[iterPipe][1]==NULL)
+            {
+                int builtin = builtin_command(ln->pipelines[iterPipe][0]);
+                if(!builtin)
+                {
+                    frk = fork();
+                    if(!frk)
+                    {
+                        execCommand(ln->pipelines[iterPipe][0]);
+                        //exit(1);
+                    }
+                    else
+                    {
+                        foreground[counter] = frk;
+                        counter++;
+                    }
+
+                    sigemptyset (&mask);
+                    while (counter>0)
+                    {
+                        sigsuspend (&mask);
+                    }
+                }
+                ++iterPipe;
+                continue;
+            }
+            if(pipe(fd2)<0)
+            {
+                exit(EXEC_FAILURE);
+            }
+            int iPipe=0;
+            command* c;
+            for(c = ln->pipelines[iterPipe][iPipe]; c!=NULL; ++iPipe, c = ln->pipelines[iterPipe][iPipe])
+            {
+                frk = fork();
+                if(!frk)
+                {
+                    controlDescriptors(c, fd, fd2);
+                }
+                else
+                {
+                    foreground[counter] = frk;
+                    counter++;
+                }
+                if(fd[0] != -1)
+                    close(fd[0]);
                 if(fd2[1] != -1)
                     close(fd2[1]);
-                fd2[0] = fd2[1] = -1;
-                fd[1] = -1;
+                fd[0] = fd2[1] = -1;
+                if(ln->pipelines[iterPipe][iPipe+2]==NULL)
+                {
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    if(fd2[1] != -1)
+                        close(fd2[1]);
+                    fd2[0] = fd2[1] = -1;
+                    fd[1] = -1;
+                }
+                else
+                {
+                    fd[0] = fd2[0];
+                    fd[1] = fd2[1];
+                    pipe(fd2);
+                }
             }
-            else
-            {
-                fd[0] = fd2[0];
-                fd[1] = fd2[1];
-                pipe(fd2);
-            }
-        }
-        if(fd[0] != -1)
-            close(fd[0]);
-        if(fd2[1] != -1)
-            close(fd2[1]);
-        if(fd[1] != -1)
-            close(fd[1]);
-        if(fd2[0] != -1)
-            close(fd2[0]);
+            if(fd[0] != -1)
+                close(fd[0]);
+            if(fd2[1] != -1)
+                close(fd2[1]);
+            if(fd[1] != -1)
+                close(fd[1]);
+            if(fd2[0] != -1)
+                close(fd2[0]);
 
-        sigemptyset (&mask);
-        while (counter>0)
-            sigsuspend (&mask);
-        //sigprocmask (SIG_UNBLOCK, &mask, NULL);
-        iterPipe++;
+            sigemptyset (&mask);
+            while (counter>0)
+                sigsuspend (&mask);
+            //sigprocmask (SIG_UNBLOCK, &mask, NULL);
+            iterPipe++;
+        }
     }
 }
+
 void controlDescriptors(command *c, int* fd, int* fd2)
 {
     if(fd[1] != -1)
@@ -284,7 +382,7 @@ int builtin_command(command *c)
 void execCommand(command *c)
 {
     if(c == NULL || c->argv == NULL || c->argv[0] == NULL)
-      exit(1);
+        exit(1);
     int k, i;
     if(c!=NULL)
     {
