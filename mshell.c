@@ -30,13 +30,14 @@ main(int argc, char *argv[])
     command *c;
     int n, k, status, i, wskMain, j, m, wskBuf, testLen;
     char buf[MAX_LINE_LENGTH+5];
+    int foreground[2048]; // procesy w foregroundzie
     struct stat p;
     status = fstat(0, &p);
     wskMain = 0;
     wskBuf = 0;
     struct sigaction sa;
     sa.sa_handler = handler;
-    sa.sa_flags = 0; // ?
+    sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     sigaction(SIGCHLD, &sa, NULL);
 
@@ -135,6 +136,14 @@ void checkPipelines(char buf[], int wskMain)
     int fd[2] = {-1, -1}, fd2[2] = {-1, -1};
     line * ln;
     ln = parseline(buf+wskMain);
+    /*if(ln.flags==LINBACKGROUND)
+    {
+
+    }
+    else
+    {
+
+    }*/
     while((ln->pipelines[iterPipe])!=NULL)
     {
         counter = 0;
@@ -274,6 +283,8 @@ int builtin_command(command *c)
 }
 void execCommand(command *c)
 {
+    if(c == NULL || c->argv == NULL || c->argv[0] == NULL)
+      exit(1);
     int k, i;
     if(c!=NULL)
     {

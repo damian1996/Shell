@@ -63,7 +63,8 @@ Uwaga! Zawsze przed wyłączeniem maszyny należy zamknąć system ("poweroff"/"
 7. Testujemy ssh:
 	- wyłącz maszynę - "poweroff" jako root
 	- wejdź do "Preferences" aplikacji "VirtualBox"
-	- w podstronie Network wybierz zakładkę "Host-only Networks" i dodaj nową sieć (ustawienia domyślne)
+	- w podstronie Network wybierz zakładkę "Host-only Networks" i dodaj nową sieć
+	 (ustawienia domyślne)
 	- w ustawieniach maszyny w zakładce "Network" zmień "NAT" na "Host-only Adapter"
 	- uruchom maszynę
 	- przed loginem pojawi się IP maszyny (np. 192.168.56.101)
@@ -85,3 +86,15 @@ Uwaga! Zawsze przed wyłączeniem maszyny należy zamknąć system ("poweroff"/"
 		"mount -t vbfs -o share=Shared none /mnt/Shared"
 
 Uwaga! Zawsze przed wyłączeniem maszyny należy zamknąć system ("poweroff"/"halt"/"shutdown -h" jako root).
+
+su
+exit
+
+cp -r mnt/Shared home/dude/
+make clean w shell
+make clean w input_parse
+zmodyfikować w makefile w input_parset byacc na yacc
+potem daj make
+potem cd ..
+make
+./mshell
