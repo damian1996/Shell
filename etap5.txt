@@ -4,7 +4,7 @@ int *statusy[1024];
 returns true if the child process was terminated by a signal.
 WTERMSIG(status)
 returns the number of the signal that caused the child process to terminate.
- macro should only be employed if WIFSIGNALED returned true.
+This macro should only be employed if WIFSIGNALED returned true.
 "Background process (pid) terminated. (exited with status (status))\n"
 "Background process (pid) terminated. (killed by signal (signo))\n"
 

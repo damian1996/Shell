@@ -199,8 +199,8 @@ void checkPipelines(char buf[], int wskMain)
                 frk = fork();
                 if(!frk)
                 {
+                    setsid();
                     controlDescriptors(c, fd, fd2);
-                    //exit(1);
                 }
 
                 if(fd[0] != -1)
