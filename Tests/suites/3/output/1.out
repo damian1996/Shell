@@ -6,6 +6,7 @@ rs.c
 rs.h
 service.c
 ----------------- test.e4.1.B
+Makefile
 alloc.c
 break.c
 const.h
@@ -14,7 +15,6 @@ forkexit.c
 getset.c
 glo.h
 main.c
-Makefile
 misc.c
 mproc.h
 param.h
@@ -28,11 +28,12 @@ trace.c
 type.h
 utility.c
 ----------------- test.e4.1.C
+Makefile
 fs
 init
-Makefile
 pm
 rs
+Makefile
 alloc.c
 break.c
 const.h
@@ -41,7 +42,6 @@ forkexit.c
 getset.c
 glo.h
 main.c
-Makefile
 misc.c
 mproc.h
 param.h
@@ -61,6 +61,7 @@ proto.h
 rs.c
 rs.h
 service.c
+Makefile
 alloc.c
 break.c
 const.h
@@ -69,7 +70,6 @@ forkexit.c
 getset.c
 glo.h
 main.c
-Makefile
 misc.c
 mproc.h
 param.h
@@ -83,6 +83,8 @@ trace.c
 type.h
 utility.c
 ----------------- test.e4.1.E
+Makefile
+Makefile
 alloc.c
 break.c
 const.h
@@ -91,8 +93,6 @@ forkexit.c
 getset.c
 glo.h
 main.c
-Makefile
-Makefile
 manager.c
 misc.c
 mproc.h

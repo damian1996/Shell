@@ -81,7 +81,7 @@ lkill(char *argv[])
 			  return BUILTIN_ERROR;
 			else
 		  {
-				if(argv[2]=="0")
+				if(strcmp(argv[2], "0")==0)
 					return BUILTIN_ERROR;
         else
 				{
@@ -107,7 +107,7 @@ lkill(char *argv[])
 					return BUILTIN_ERROR;
 				else
 			  {
-					if(argv[2]=="0")
+					if(strcmp(argv[2], "0")==0)
 					  return BUILTIN_ERROR;
 	        else
 					{

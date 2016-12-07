@@ -4,9 +4,9 @@ servers
 .
 ..
 .depend
+Makefile
 fs
 init
-Makefile
 pm
 rs
 /* If there were any type definitions local to the Process Manager, they would
@@ -37,6 +37,7 @@ rs
 
 #endif
 
+Makefile
 alloc.c
 break.c
 const.h
@@ -45,7 +46,6 @@ forkexit.c
 getset.c
 glo.h
 main.c
-Makefile
 misc.c
 mproc.h
 param.h

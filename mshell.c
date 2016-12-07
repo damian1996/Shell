@@ -137,7 +137,6 @@ main(int argc, char *argv[])
         }
     }
 }
-
 void handler(int sigNb)
 {
     pid_t child;
@@ -182,6 +181,7 @@ void checkPipelines(char buf[], int wskMain)
     ln = parseline(buf+wskMain);
     if(ln->flags & LINBACKGROUND)
     {
+        int cntEmpCommand = 0;
         if(ln->pipelines[0][0]==NULL)
         {
             iterPipe++;
@@ -258,7 +258,6 @@ void checkPipelines(char buf[], int wskMain)
                     if(!frk)
                     {
                         execCommand(ln->pipelines[iterPipe][0]);
-                        //exit(1);
                     }
                     else
                     {
@@ -326,12 +325,10 @@ void checkPipelines(char buf[], int wskMain)
             sigemptyset (&mask);
             while (counter>0)
                 sigsuspend (&mask);
-            //sigprocmask (SIG_UNBLOCK, &mask, NULL);
             iterPipe++;
         }
     }
 }
-
 void controlDescriptors(command *c, int* fd, int* fd2)
 {
     if(fd[1] != -1)
@@ -356,7 +353,6 @@ void controlDescriptors(command *c, int* fd, int* fd2)
         close(fd2[1]);
         fd2[1] = -1;
     }
-    //fprintf(stdout, "%s %d %d %d %d \n", c->argv[0], fd2[0], fd2[1], fd[0], fd[1]);
     execCommand(c);
 }
 int builtin_command(command *c)
@@ -377,7 +373,7 @@ int builtin_command(command *c)
         }
         temp++;
     }
-    return result; // c byl builtinsem
+    return result;
 }
 void execCommand(command *c)
 {
@@ -408,7 +404,8 @@ void redirections(command *c)
         if(IS_RIN(c->redirs[iter]->flags))
         {
             close(0);
-            if(fdRedir = open(c->redirs[iter]->filename, O_RDONLY)<0)
+	    fdRedir = open(c->redirs[iter]->filename, O_RDONLY);
+            if(fdRedir < 0)
             {
                 err = errno;
                 checkErrnoRedirs(err, c, iter);
@@ -423,7 +420,8 @@ void redirections(command *c)
             close(1);
             if(IS_RAPPEND(c->redirs[iter]->flags))
             {
-                if(fdRedir = open(c->redirs[iter]->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH) < 0)
+		fdRedir = open(c->redirs[iter]->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+                if(fdRedir < 0)
                 {
                     err = errno;
                     checkErrnoRedirs(err, c, iter);
@@ -431,7 +429,8 @@ void redirections(command *c)
             }
             else
             {
-                if(fdRedir = open(c->redirs[iter]->filename, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH) < 0)
+		fdRedir = open(c->redirs[iter]->filename, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+                if(fdRedir < 0)
                 {
                     err = errno;
                     checkErrnoRedirs(err, c, iter);
@@ -442,7 +441,6 @@ void redirections(command *c)
                 exit(EXEC_FAILURE);
             }
         }
-
         iter++;
     }
 }
